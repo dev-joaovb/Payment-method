@@ -1,16 +1,21 @@
-import CardCheckout from "./components/CardCheckout";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+import Layout from "./components/Layout";
+import Home from "./pages/Home";
+import CardPage from "./pages/CardPage";
+import BoletoPage from "./pages/BoletoPage";
 
 function App() {
-
-  const amount = "100.00";
-
   return (
-    <div style={{ padding: "40px" }}>
-      <h1>Checkout Profissional 💳</h1>
-      <h2>Valor: R$ {amount}</h2>
-
-      <CardCheckout amount={amount} />
-    </div>
+    <Router>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/card" element={<CardPage />} />
+          <Route path="/boleto" element={<BoletoPage />} />
+        </Routes>
+      </Layout>
+    </Router>
   );
 }
 
