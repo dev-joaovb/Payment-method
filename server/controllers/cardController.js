@@ -1,9 +1,6 @@
 const axios = require("axios");
 const { generateAccessToken } = require("../config/paypalClient");
 
-/**
- * Cria ordem para cartão
- */
 async function createCardOrder(req, res) {
   try {
     const { amount } = req.body;
@@ -31,8 +28,8 @@ async function createCardOrder(req, res) {
     );
 
     res.json(response.data);
-
   } catch (error) {
+    console.error(error.response?.data || error.message);
     res.status(500).json({ error: "Erro ao criar ordem cartão" });
   }
 }

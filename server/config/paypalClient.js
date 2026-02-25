@@ -1,26 +1,33 @@
 const axios = require("axios");
-require("dotenv").config();
 
-/**
- * Gera token OAuth2 para autenticação com PayPal
- */
 async function generateAccessToken() {
-  const auth = Buffer.from(
-    process.env.PAYPAL_CLIENT_ID + ":" + process.env.PAYPAL_CLIENT_SECRET
-  ).toString("base64");
-
-  const response = await axios.post(
-    `${process.env.PAYPAL_BASE_URL}/v1/oauth2/token`,
-    "grant_type=client_credentials",
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${auth}`,
-      },
-    }
-  );
+  const response = await axios({
+    url: `${process.env.PAYPAL_BASE_URL}/v1/oauth2/token`,
+    method: "post",
+    data: "grant_type=client_credentials",
+    auth: {
+      username: process.env.PAYPAL_CLIENT_ID,
+      password: process.env.PAYPAL_CLIENT_SECRET,
+    },
+  });
 
   return response.data.access_token;
 }
 
-module.exports = { generateAccessToken };
+async function generateClientToken() {
+  const accessToken = await generateAccessToken();
+
+  const response = await axios.post(
+    `${process.env.PAYPAL_BASE_URL}/v1/identity/generate-token`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  return response.data.client_token;
+}
+
+module.exports = { generateAccessToken, generateClientToken };
