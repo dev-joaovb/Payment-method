@@ -20,7 +20,7 @@ export default function CardFieldsForm({ amount }) {
 
         const script = document.createElement("script");
 
-        script.src = `https://www.paypal.com/sdk/js?client-id=${
+        script.src = `https://www.sandbox.paypal.com/web-sdk/v6/core?client-id=${
           import.meta.env.VITE_PAYPAL_CLIENT_ID
         }&currency=BRL&intent=capture&components=card-fields&data-client-token=${
           data.clientToken

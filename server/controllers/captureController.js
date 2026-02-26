@@ -1,9 +1,6 @@
 const axios = require("axios");
 const { generateAccessToken } = require("../config/paypalClient");
 
-/**
- * Captura pagamento após aprovação
- */
 async function captureOrder(req, res) {
   try {
     const { orderID } = req.body;
@@ -20,6 +17,7 @@ async function captureOrder(req, res) {
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
         },
       }
     );
@@ -27,7 +25,7 @@ async function captureOrder(req, res) {
     res.json(response.data);
 
   } catch (error) {
-    console.error("Erro ao capturar:", error.response?.data);
+    console.error("Erro ao capturar pagamento:", error.response?.data || error.message);
     res.status(500).json({ error: "Erro ao capturar pagamento" });
   }
 }

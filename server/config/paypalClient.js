@@ -1,33 +1,47 @@
 const axios = require("axios");
 
 async function generateAccessToken() {
-  const response = await axios({
-    url: `${process.env.PAYPAL_BASE_URL}/v1/oauth2/token`,
-    method: "post",
-    data: "grant_type=client_credentials",
-    auth: {
-      username: process.env.PAYPAL_CLIENT_ID,
-      password: process.env.PAYPAL_CLIENT_SECRET,
-    },
-  });
+  try {
+    const response = await axios({
+      url: `${process.env.PAYPAL_BASE_URL}/v1/oauth2/token`,
+      method: "post",
+      data: "grant_type=client_credentials",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      auth: {
+        username: process.env.PAYPAL_CLIENT_ID,
+        password: process.env.PAYPAL_CLIENT_SECRET,
+      },
+    });
 
-  return response.data.access_token;
+    return response.data.access_token;
+  } catch (error) {
+    console.error("Erro ao gerar access token:", error.response?.data || error.message);
+    throw error;
+  }
 }
 
 async function generateClientToken() {
-  const accessToken = await generateAccessToken();
+  try {
+    const accessToken = await generateAccessToken();
 
-  const response = await axios.post(
-    `${process.env.PAYPAL_BASE_URL}/v1/identity/generate-token`,
-    {},
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  );
+    const response = await axios.post(
+      `${process.env.PAYPAL_BASE_URL}/v1/identity/generate-token`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-  return response.data.client_token;
+    return response.data.client_token;
+  } catch (error) {
+    console.error("Erro ao gerar client token:", error.response?.data || error.message);
+    throw error;
+  }
 }
 
 module.exports = { generateAccessToken, generateClientToken };
