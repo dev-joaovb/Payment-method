@@ -1,4 +1,4 @@
-import CardFieldsForm from "../components/CardFieldsForm";
+import PayPalCheckout from "../components/PayPalCheckout";
 
 export default function CardPage() {
   return (
@@ -9,7 +9,7 @@ export default function CardPage() {
       </h2>
 
       <div className="border p-6 rounded-lg bg-gray-50">
-        <CardFieldsForm amount="100.00" />
+        <PayPalCheckout amount="100.00" />
       </div>
 
     </div>

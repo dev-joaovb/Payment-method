@@ -1,47 +1,41 @@
 const axios = require("axios");
 
 async function generateAccessToken() {
-  try {
-    const response = await axios({
-      url: `${process.env.PAYPAL_BASE_URL}/v1/oauth2/token`,
-      method: "post",
-      data: "grant_type=client_credentials",
+  const response = await axios({
+    url: `${process.env.PAYPAL_BASE_URL}/v1/oauth2/token`,
+    method: "post",
+    data: "grant_type=client_credentials",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    auth: {
+      username: process.env.PAYPAL_CLIENT_ID,
+      password: process.env.PAYPAL_CLIENT_SECRET,
+    },
+  });
+
+  return response.data.access_token;
+}
+
+async function generateSdkClientToken() {
+  const accessToken = await generateAccessToken();
+
+  const response = await axios.post(
+    `${process.env.PAYPAL_BASE_URL}/v1/identity/generate-token`,
+    {},
+    {
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "PayPal-Client-Metadata-Id": "sdk-v6-test", // 🔥 ESSENCIAL
       },
-      auth: {
-        username: process.env.PAYPAL_CLIENT_ID,
-        password: process.env.PAYPAL_CLIENT_SECRET,
-      },
-    });
+    }
+  );
 
-    return response.data.access_token;
-  } catch (error) {
-    console.error("Erro ao gerar access token:", error.response?.data || error.message);
-    throw error;
-  }
+  return response.data.client_token;
 }
 
-async function generateClientToken() {
-  try {
-    const accessToken = await generateAccessToken();
-
-    const response = await axios.post(
-      `${process.env.PAYPAL_BASE_URL}/v1/identity/generate-token`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    return response.data.client_token;
-  } catch (error) {
-    console.error("Erro ao gerar client token:", error.response?.data || error.message);
-    throw error;
-  }
-}
-
-module.exports = { generateAccessToken, generateClientToken };
+module.exports = {
+  generateAccessToken,
+  generateSdkClientToken,
+};

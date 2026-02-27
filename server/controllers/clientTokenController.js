@@ -1,15 +1,13 @@
-const { generateClientToken } = require("../config/paypalClient");
+const { generateSdkClientToken } = require("../config/paypalClient");
 
 async function getClientToken(req, res) {
   try {
-    const clientToken = await generateClientToken();
+    const clientToken = await generateSdkClientToken();
 
-    res.json({
-      clientToken,   // SDK v6 espera isso
-    });
+    res.json({ clientToken });
 
   } catch (error) {
-    console.error("Erro no endpoint client-token:", error.response?.data || error.message);
+    console.error("Erro ao gerar client token:", error.response?.data || error.message);
     res.status(500).json({ error: "Erro ao gerar client token" });
   }
 }
