@@ -27,7 +27,6 @@ async function generateSdkClientToken() {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
-        "PayPal-Client-Metadata-Id": "sdk-v6-test", // 🔥 ESSENCIAL
       },
     }
   );

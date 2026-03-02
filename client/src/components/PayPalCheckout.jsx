@@ -22,7 +22,7 @@ export default function PayPalCheckout() {
     document.body.appendChild(script);
 
     function renderButtons() {
-      window.paypal.Buttons({
+      window.paypal.Buttons({ 
         createOrder: (data, actions) => {
           return actions.order.create({
             purchase_units: [
