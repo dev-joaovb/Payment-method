@@ -14,7 +14,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/card" element={<CardPage />} />
           <Route path="/boleto" element={<BoletoPage />} />
-          <Route path="/v6" element={<PayPal_v6 />} />
+          <Route path="/v6/:id" element={<PayPal_v6 />} />
         </Routes>
       </Layout>
     </Router>

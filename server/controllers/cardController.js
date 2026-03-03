@@ -1,13 +1,14 @@
+// cardController.js
 const axios = require("axios");
 const { generateAccessToken } = require("../config/paypalClient");
 
 async function createCardOrder(req, res) {
   try {
-    const { amount } = req.body;
+    const { productId } = req.body; // Receba o ID, não o preço
 
-    if (!amount) {
-      return res.status(400).json({ error: "Amount é obrigatório" });
-    }
+    // SIMULAÇÃO: Busque o valor real no seu banco de dados
+    const products = { "1": "150.00", "2": "50.00" };
+    const valorReal = products[productId] || "10.00"; 
 
     const accessToken = await generateAccessToken();
 
@@ -19,10 +20,14 @@ async function createCardOrder(req, res) {
           {
             amount: {
               currency_code: "BRL",
-              value: amount,
+              value: valorReal,
             },
           },
         ],
+        // Opcional: Adicionar payment_source para facilitar o processamento de cartões
+        payment_source: {
+          card: {}
+        }
       },
       {
         headers: {
@@ -33,10 +38,10 @@ async function createCardOrder(req, res) {
     );
 
     res.json(response.data);
-
   } catch (error) {
-    console.error("Erro ao criar ordem cartão:", error.response?.data || error.message);
-    res.status(500).json({ error: "Erro ao criar ordem cartão" });
+    const details = error.response?.data || error.message;
+    console.error("Erro ao criar ordem:", details);
+    res.status(500).json({ error: "Erro ao criar ordem", details });
   }
 }
 

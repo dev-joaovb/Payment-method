@@ -1,98 +1,89 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useMemo } from "react";
+import { useParams } from "react-router-dom";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import axios from "axios";
 
-export default function PayPal_v6({ amount }) {
-  const cardContainerRef = useRef(null);
-  const [sdkInstance, setSdkInstance] = useState(null);
+export default function PayPal_v6() {
+  const { id } = useParams();
 
-  useEffect(() => {
-  if (window.paypal) {
-    return;
-  }
+  // useMemo evita que o script do PayPal reinicie toda vez que o componente renderizar
+  const initialOptions = useMemo(() => ({
+    "client-id": import.meta.env.VITE_PAYPAL_CLIENT_ID,
+    currency: "BRL",
+    intent: "capture",
+  }), []);
 
-  if (document.querySelector("#paypal-v6-sdk")) {
-    return;
-  }
-
-  const script = document.createElement("script");
-  script.id = "paypal-v6-sdk";
-  script.src = "https://www.paypal.com/web-sdk/v6/core";
-  script.async = true;
-
-  script.onload = initialize;
-
-  document.body.appendChild(script);
-}, []);
-
-
-  async function loadSDK() {
-    if (window.paypal) {
-      initialize();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://www.paypal.com/web-sdk/v6/core";
-    script.async = true;
-
-    script.onload = initialize;
-    document.body.appendChild(script);
-  }
-
-  async function initialize() {
+  const onCreateOrder = async () => {
     try {
-      const { data } = await axios.get(
-        "http://localhost:5000/api/payments/client-token"
-      );
-
-      const instance = await window.paypal.createInstance({
-        clientToken: data.clientToken,
+      console.log("🚀 Iniciando ordem para o produto:", id);
+      const res = await axios.post("http://localhost:5000/api/payments/card/create", {
+        productId: id
       });
 
-      const cardFields = await instance.createCardFields({
-        styles: {
-          input: {
-            "font-size": "16px",
-          },
-        },
-      });
-
-      await cardFields.render(cardContainerRef.current);
-
-      setSdkInstance({ instance, cardFields });
+      if (!res.data.id) throw new Error("ID da ordem não retornado pelo servidor.");
+      return res.data.id; 
     } catch (err) {
-      console.error("Erro ao iniciar SDK:", err);
+      const backendError = err.response?.data?.message || err.message;
+      console.error("❌ Erro no Backend:", backendError);
+      alert(`Erro ao criar pedido: ${backendError}`);
+      throw err; // Importante para o PayPal saber que falhou
     }
-  }
+  };
 
-  async function handlePayment() {
+  const onApprove = async (data) => {
     try {
-      const { data: order } = await axios.post(
-        "http://localhost:5000/api/payments/card/create",
-        { amount }
-      );
-
-      const result = await sdkInstance.cardFields.submit({
-        orderId: order.id,
+      const res = await axios.post("http://localhost:5000/api/payments/capture", {
+        orderID: data.orderID,
       });
 
-      await axios.post("http://localhost:5000/api/payments/capture", {
-        orderID: order.id,
-      });
-
-      alert("Pagamento aprovado!");
-    } catch (error) {
-      console.error("Erro no pagamento:", error);
-      alert("Erro ao processar pagamento");
+      if (res.data.status === "COMPLETED") {
+        alert("✅ Pagamento aprovado com sucesso!");
+        // Opcional: window.location.href = "/obrigado";
+      }
+    } catch (err) {
+      console.error("❌ Erro na captura:", err);
+      alert("Pagamento processado, mas houve um erro na confirmação interna.");
     }
+  };
+
+  // Se o ID estiver vindo vazio da URL, avisamos o usuário
+  if (!id) {
+    return (
+      <div style={{ textAlign: "center", padding: "20px" }}>
+        <h3>Erro: Produto não identificado.</h3>
+        <p>A URL correta deve ser /v6/ID_DO_PRODUTO</p>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <div ref={cardContainerRef}></div>
-      <button onClick={handlePayment}>
-        Pagar R$ {amount}
-      </button>
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      alignItems: "center", 
+      padding: "20px",
+      minHeight: "250px" 
+    }}>
+      <h2 style={{ marginBottom: "20px" }}>Finalizar Pagamento</h2>
+      
+      <div style={{ width: "100%", maxWidth: "350px" }}>
+        <PayPalScriptProvider options={initialOptions}>
+          <PayPalButtons
+            style={{ 
+              layout: "vertical", 
+              color: "blue", 
+              shape: "rect",
+              label: "pay" 
+            }}
+            createOrder={onCreateOrder}
+            onApprove={onApprove}
+            onError={(err) => {
+              console.error("🚨 Erro crítico no SDK:", err);
+              alert("Não foi possível carregar o PayPal. Verifique sua conexão ou Client ID.");
+            }}
+          />
+        </PayPalScriptProvider>
+      </div>
     </div>
   );
 }
