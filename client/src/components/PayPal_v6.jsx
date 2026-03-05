@@ -6,7 +6,9 @@ import axios from "axios";
 export default function PayPal_v6() {
   const { id } = useParams();
 
-  // useMemo evita que o script do PayPal reinicie toda vez que o componente renderizar
+  // Se não houver ID na URL, podemos definir um padrão para testes ou nulo
+  const productId = id || null;
+
   const initialOptions = useMemo(() => ({
     "client-id": import.meta.env.VITE_PAYPAL_CLIENT_ID,
     currency: "BRL",
@@ -14,19 +16,20 @@ export default function PayPal_v6() {
   }), []);
 
   const onCreateOrder = async () => {
-    try {
-      console.log("🚀 Iniciando ordem para o produto:", id);
-      const res = await axios.post("http://localhost:5000/api/payments/card/create", {
-        productId: id
-      });
+    if (!productId) {
+      alert("Erro: Nenhum produto selecionado para compra.");
+      return;
+    }
 
-      if (!res.data.id) throw new Error("ID da ordem não retornado pelo servidor.");
-      return res.data.id; 
+    try {
+      console.log("🛒 Criando ordem para:", productId);
+      const res = await axios.post("http://localhost:5000/api/payments/card/create", {
+        productId: productId
+      });
+      return res.data.id;
     } catch (err) {
-      const backendError = err.response?.data?.message || err.message;
-      console.error("❌ Erro no Backend:", backendError);
-      alert(`Erro ao criar pedido: ${backendError}`);
-      throw err; // Importante para o PayPal saber que falhou
+      console.error("❌ Erro ao criar ordem:", err.response?.data || err.message);
+      throw err;
     }
   };
 
@@ -35,55 +38,37 @@ export default function PayPal_v6() {
       const res = await axios.post("http://localhost:5000/api/payments/capture", {
         orderID: data.orderID,
       });
-
       if (res.data.status === "COMPLETED") {
-        alert("✅ Pagamento aprovado com sucesso!");
-        // Opcional: window.location.href = "/obrigado";
+        alert("🎉 Pagamento realizado com sucesso!");
       }
     } catch (err) {
       console.error("❌ Erro na captura:", err);
-      alert("Pagamento processado, mas houve um erro na confirmação interna.");
+      alert("Erro ao confirmar pagamento no servidor.");
     }
   };
 
-  // Se o ID estiver vindo vazio da URL, avisamos o usuário
-  if (!id) {
-    return (
-      <div style={{ textAlign: "center", padding: "20px" }}>
-        <h3>Erro: Produto não identificado.</h3>
-        <p>A URL correta deve ser /v6/ID_DO_PRODUTO</p>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ 
-      display: "flex", 
-      flexDirection: "column", 
-      alignItems: "center", 
-      padding: "20px",
-      minHeight: "250px" 
-    }}>
-      <h2 style={{ marginBottom: "20px" }}>Finalizar Pagamento</h2>
-      
-      <div style={{ width: "100%", maxWidth: "350px" }}>
-        <PayPalScriptProvider options={initialOptions}>
-          <PayPalButtons
-            style={{ 
-              layout: "vertical", 
-              color: "blue", 
-              shape: "rect",
-              label: "pay" 
-            }}
-            createOrder={onCreateOrder}
-            onApprove={onApprove}
-            onError={(err) => {
-              console.error("🚨 Erro crítico no SDK:", err);
-              alert("Não foi possível carregar o PayPal. Verifique sua conexão ou Client ID.");
-            }}
-          />
-        </PayPalScriptProvider>
-      </div>
+    <div style={{ padding: "40px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      {!productId ? (
+        <div style={{ color: "red", textAlign: "center" }}>
+          <h2>Atenção!</h2>
+          <p>Você acessou a página de pagamento sem selecionar um produto.</p>
+          <p>Use a URL no formato: <b>/v6/ID_DO_PRODUTO</b></p>
+        </div>
+      ) : (
+        <div style={{ width: "100%", maxWidth: "350px" }}>
+          <h2 style={{ textAlign: "center" }}>Finalizar Compra</h2>
+          <br />
+          <PayPalScriptProvider options={initialOptions}>
+            <PayPalButtons
+              style={{ layout: "vertical", color: "blue", shape: "rect" }}
+              createOrder={onCreateOrder}
+              onApprove={onApprove}
+              onError={(err) => console.error("PayPal Script Error:", err)}
+            />
+          </PayPalScriptProvider>
+        </div>
+      )}
     </div>
   );
 }
