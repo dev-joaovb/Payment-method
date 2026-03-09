@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gateway de Pagamento PayPal</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --paypal-blue: #003087;
+    --paypal-sky: #009CDE;
+    --paypal-gold: #FFB800;
+    --paypal-light: #EEF7FF;
+    --bg: #F0F4F9;
+    --card: #FFFFFF;
+    --text: #0A1628;
+    --muted: #6B7A99;
+    --border: #DDE5F0;
+    --success: #00C48C;
+    --error: #FF4D4F;
+    --radius: 16px;
+    --shadow: 0 8px 40px rgba(0,48,135,0.10);
+    --shadow-lg: 0 24px 80px rgba(0,48,135,0.16);
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,156,222,0.13) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 90% 90%, rgba(0,48,135,0.07) 0%, transparent 60%);
+  }
+
+  .wrapper {
+    width: 100%;
+    max-width: 960px;
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 24px;
+    animation: fadeUp 0.6s cubic-bezier(.22,1,.36,1) both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(28px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── LEFT PANEL ─── */
+  .left-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 24px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+
+  .brand-logo {
+    width: 44px;
+    height: 44px;
+    background: var(--paypal-blue);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .brand-logo::before {
+    content: 'P';
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    font-style: italic;
+  }
+
+  .brand-logo::after {
+    content: 'P';
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--paypal-sky);
+    font-style: italic;
+    position: absolute;
+    left: 14px;
+    top: 0;
+  }
+
+  .brand-info h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .brand-info p {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .secure-badge {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--success);
+    background: rgba(0,196,140,0.08);
+    padding: 5px 10px;
+    border-radius: 20px;
+  }
+
+  .secure-badge::before { content: '🔒'; font-size: 12px; }
+
+  /* Order Summary */
+  .order-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    flex: 1;
+  }
+
+  .order-card h3 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .order-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .order-item:last-of-type { border-bottom: none; }
+
+  .item-img {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: var(--paypal-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .item-info { flex: 1; }
+  .item-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .item-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .item-price { font-size: 15px; font-weight: 700; color: var(--text); font-family: 'DM Mono', monospace; }
+
+  .divider { border: none; border-top: 2px dashed var(--border); margin: 16px 0; }
+
+  .totals { display: flex; flex-direction: column; gap: 8px; }
+
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .total-row.grand {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+
+  .total-row.grand span:last-child {
+    color: var(--paypal-blue);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ─── RIGHT PANEL ─── */
+  .payment-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .payment-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--paypal-blue) 0%, var(--paypal-sky) 100%);
+  }
+
+  .card-header {
+    padding: 28px 28px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card-header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .card-header p { font-size: 13px; color: var(--muted); }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    margin: 0 28px;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 14px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+  }
+
+  .tab.active { color: var(--paypal-blue); }
+
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 2px;
+    background: var(--paypal-blue);
+    border-radius: 2px 2px 0 0;
+  }
+
+  /* Form */
+  .form-body { padding: 24px 28px 28px; display: flex; flex-direction: column; gap: 16px; }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field-group.row { flex-direction: row; gap: 12px; }
+  .field-group.row > * { flex: 1; }
+
+  label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--card);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--paypal-sky);
+    box-shadow: 0 0 0 3px rgba(0,156,222,0.12);
+  }
+
+  input.error { border-color: var(--error); }
+  input.success { border-color: var(--success); }
+
+  input::placeholder { color: #B0BBCC; }
+
+  .card-number-wrap {
+    position: relative;
+  }
+
+  .card-number-wrap input {
+    padding-right: 90px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.08em;
+  }
+
+  .card-icons {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 4px;
+  }
+
+  .card-icon {
+    width: 30px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    background: var(--card);
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  .card-icon.visa { color: #1A1F71; }
+  .card-icon.mc { color: #EB001B; }
+  .card-icon.active { opacity: 1; }
+
+  /* PayPal Button */
+  .paypal-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #003087 0%, #0070BA 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 6px 20px rgba(0,112,186,0.35);
+    margin-top: 4px;
+    letter-spacing: 0.01em;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .paypal-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+  }
+
+  .paypal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(0,112,186,0.42);
+  }
+
+  .paypal-btn:active { transform: translateY(0); }
+
+  .paypal-btn .pp-logo {
+    font-size: 18px;
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: -1px;
+  }
+
+  .paypal-btn .pp-logo span { color: var(--paypal-sky); }
+
+  /* Loading state */
+  .paypal-btn.loading .btn-text { display: none; }
+  .paypal-btn.loading::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2.5px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .divider-or {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .divider-or::before, .divider-or::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .security-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding-top: 4px;
+  }
+
+  .security-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .security-item svg { opacity: 0.6; }
+
+  /* Success Overlay */
+  .success-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,22,40,0.6);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease both;
+  }
+
+  .success-overlay.show { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .success-modal {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 48px 40px;
+    text-align: center;
+    max-width: 380px;
+    width: 90%;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.25);
+    animation: popIn 0.4s cubic-bezier(.34,1.56,.64,1) both 0.1s;
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .success-icon {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, #00C48C, #00E5A0);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 32px;
+    box-shadow: 0 12px 32px rgba(0,196,140,0.35);
+  }
+
+  .success-modal h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .success-modal p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+
+  .success-modal .txn {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .close-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--paypal-blue);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .close-btn:hover { background: #0046C8; }
+
+  /* Responsive */
+  @media (max-width: 740px) {
+    .wrapper { grid-template-columns: 1fr; max-width: 460px; }
+    .left-panel { order: 2; }
+    .payment-card { order: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <div class="brand">
+      <div class="brand-logo"></div>
+      <div class="brand-info">
+        <h2>Loja Premium Store</h2>
+        <p>checkout.lojapremium.com.br</p>
+      </div>
+      <div class="secure-badge">Seguro</div>
+    </div>
+
+    <div class="order-card">
+      <h3>Resumo do Pedido</h3>
+
+      <div class="order-item">
+        <div class="item-img">📦</div>
+        <div class="item-info">
+          <div class="item-name">Plano Pro Anual</div>
+          <div class="item-sub">1x assinatura · 12 meses</div>
+        </div>
+        <div class="item-price">R$ 599,90</div>
+      </div>
+
+      <div class="order-item">
+        <div class="item-img">🎁</div>
+        <div class="item-info">
+          <div class="item-name">Pack Bônus Exclusivo</div>
+          <div class="item-sub">1x item adicional</div>
+        </div>
+        <div class="item-price">R$ 49,90</div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="totals">
+        <div class="total-row">
+          <span>Subtotal</span>
+          <span>R$ 649,80</span>
+        </div>
+        <div class="total-row">
+          <span>Desconto (10%)</span>
+          <span style="color: var(--success)">− R$ 64,98</span>
+        </div>
+        <div class="total-row">
+          <span>Taxa de processamento</span>
+          <span>R$ 0,00</span>
+        </div>
+        <div class="total-row grand">
+          <span>Total</span>
+          <span>R$ 584,82</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="payment-card">
+    <div class="card-header">
+      <h1>Pagamento Seguro</h1>
+      <p>Seus dados são protegidos com criptografia SSL 256-bit</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab(this, 'card-form')">💳 Cartão</button>
+      <button class="tab" onclick="switchTab(this, 'paypal-form')">🅿 PayPal</button>
+      <button class="tab" onclick="switchTab(this, 'pix-form')">⚡ PIX</button>
+    </div>
+
+    <!-- CARTÃO -->
+    <div id="card-form" class="form-body">
+      <div class="field-group">
+        <label>Nome no Cartão</label>
+        <input type="text" placeholder="Como aparece no cartão" id="card-name" oninput="validateName(this)">
+      </div>
+
+      <div class="field-group">
+        <label>Número do Cartão</label>
+        <div class="card-number-wrap">
+          <input type="text" placeholder="0000  0000  0000  0000" id="card-number"
+            oninput="formatCard(this)" maxlength="19" inputmode="numeric">
+          <div class="card-icons">
+            <div class="card-icon visa" id="visa-icon">VISA</div>
+            <div class="card-icon mc" id="mc-icon">MC</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-group row">
+        <div class="field-group">
+          <label>Validade</label>
+          <input type="text" placeholder="MM/AA" id="card-expiry"
+            oninput="formatExpiry(this)" maxlength="5" inputmode="numeric">
+        </div>
+        <div class="field-group">
+          <label>CVV</label>
+          <input type="text" placeholder="•••" id="card-cvv"
+            oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)" maxlength="4" inputmode="numeric">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>CPF do Titular</label>
+        <input type="text" placeholder="000.000.000-00" id="card-cpf"
+          oninput="formatCPF(this)" maxlength="14" inputmode="numeric">
+      </div>
+
+      <button class="paypal-btn" id="pay-btn" onclick="processPayment()">
+        <span class="btn-text" style="display:flex;align-items:center;gap:10px">
+          <span class="pp-logo">Pay<span>Pal</span></span>
+          · Pagar R$ 584,82
+        </span>
+      </button>
+
+      <div class="divider-or">ou pague com</div>
+
+      <div class="security-row">
+        <div class="security-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          SSL 256-bit
+        </div>
+        <div class="security-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          PCI Compliant
+        </div>
+        <div class="security-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Anti-fraude
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYPAL DIRETO -->
+    <div id="paypal-form" class="form-body" style="display:none">
+      <div style="text-align:center; padding: 8px 0 16px;">
+        <div style="width:64px;height:64px;background:var(--paypal-blue);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:28px;font-weight:900;color:#fff;font-style:italic;letter-spacing:-2px;">P<span style="color:#009CDE">P</span></div>
+        <p style="font-size:14px;color:var(--muted);line-height:1.6">Você será redirecionado para o PayPal para concluir o pagamento de forma segura.</p>
+      </div>
+
+      <div class="field-group">
+        <label>E-mail PayPal (opcional)</label>
+        <input type="email" placeholder="seu@email.com">
+      </div>
+
+      <button class="paypal-btn" onclick="processPayment()">
+        <span class="btn-text" style="display:flex;align-items:center;gap:10px">
+          <span class="pp-logo">Pay<span>Pal</span></span>
+          · Continuar
+        </span>
+      </button>
+
+      <p style="text-align:center;font-size:11px;color:var(--muted);margin-top:4px">Você será redirecionado para paypal.com</p>
+
+      <div class="security-row">
+        <div class="security-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          PayPal Buyer Protection
+        </div>
+      </div>
+    </div>
+
+    <!-- PIX -->
+    <div id="pix-form" class="form-body" style="display:none">
+      <div style="text-align:center;padding:8px 0 4px">
+        <div style="width:160px;height:160px;background:var(--bg);border-radius:16px;border:2px dashed var(--border);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:56px;">⚡</div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.6">Escaneie o QR Code com o app do seu banco ou copie o código PIX abaixo.</p>
+      </div>
+
+      <div style="background:var(--bg);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">00020126580014br.gov.bcb.pix...</span>
+        <button onclick="copyPix()" style="background:var(--paypal-blue);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Plus Jakarta Sans',sans-serif">Copiar</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;background:#FFF8E6;border-radius:10px;padding:12px 14px;border:1px solid #FFE5A0">
+        <span style="font-size:18px">⏱</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">Expira em <span id="pix-timer" style="color:var(--paypal-blue)">14:59</span></div>
+          <div style="font-size:12px;color:var(--muted)">O código PIX tem validade de 15 minutos</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="success-overlay" id="success-overlay">
+  <div class="success-modal">
+    <div class="success-icon">✓</div>
+    <h2>Pagamento Aprovado!</h2>
+    <p>Seu pedido foi confirmado com sucesso. Você receberá um e-mail de confirmação em breve.</p>
+    <div class="txn">TXN: PP-<span id="txn-id">84F291KL73829</span></div>
+    <button class="close-btn" onclick="closeSuccess()">Continuar →</button>
+  </div>
+</div>
+
+<script>
+  // Tab switching
+  function switchTab(btn, formId) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.form-body').forEach(f => f.style.display = 'none');
+    document.getElementById(formId).style.display = 'flex';
+  }
+
+  // Card number formatting
+  function formatCard(input) {
+    let val = input.value.replace(/\D/g, '').slice(0, 16);
+    input.value = val.replace(/(.{4})/g, '$1  ').trim();
+    // Detect card type
+    const visa = document.getElementById('visa-icon');
+    const mc = document.getElementById('mc-icon');
+    visa.classList.remove('active');
+    mc.classList.remove('active');
+    if (val.startsWith('4')) visa.classList.add('active');
+    else if (/^5[1-5]/.test(val)) mc.classList.add('active');
+  }
+
+  // Expiry formatting
+  function formatExpiry(input) {
+    let val = input.value.replace(/\D/g, '').slice(0, 4);
+    if (val.length >= 3) val = val.slice(0,2) + '/' + val.slice(2);
+    input.value = val;
+  }
+
+  // CPF formatting
+  function formatCPF(input) {
+    let val = input.value.replace(/\D/g, '').slice(0, 11);
+    val = val.replace(/(\d{3})(\d)/, '$1.$2')
+             .replace(/(\d{3})(\d)/, '$1.$2')
+             .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    input.value = val;
+  }
+
+  // Name validation
+  function validateName(input) {
+    input.className = input.value.trim().split(' ').length >= 2 ? 'success' : '';
+  }
+
+  // Process payment
+  function processPayment() {
+    const btn = document.getElementById('pay-btn');
+    if (btn) {
+      btn.classList.add('loading');
+      setTimeout(() => {
+        btn.classList.remove('loading');
+        document.getElementById('txn-id').textContent = 'PP-' + Math.random().toString(36).substr(2,12).toUpperCase();
+        document.getElementById('success-overlay').classList.add('show');
+      }, 2200);
+    } else {
+      document.getElementById('txn-id').textContent = 'PP-' + Math.random().toString(36).substr(2,12).toUpperCase();
+      document.getElementById('success-overlay').classList.add('show');
+    }
+  }
+
+  function closeSuccess() {
+    document.getElementById('success-overlay').classList.remove('show');
+  }
+
+  function copyPix() {
+    navigator.clipboard.writeText('00020126580014br.gov.bcb.pix0136exemplo-chave-pix-aqui').catch(()=>{});
+    event.target.textContent = 'Copiado!';
+    event.target.style.background = 'var(--success)';
+    setTimeout(() => { event.target.textContent = 'Copiar'; event.target.style.background = 'var(--paypal-blue)'; }, 2000);
+  }
+
+  // PIX countdown
+  let timeLeft = 899;
+  function updateTimer() {
+    const el = document.getElementById('pix-timer');
+    if (!el) return;
+    const m = String(Math.floor(timeLeft / 60)).padStart(2,'0');
+    const s = String(timeLeft % 60).padStart(2,'0');
+    el.textContent = `${m}:${s}`;
+    if (timeLeft > 0) { timeLeft--; setTimeout(updateTimer, 1000); }
+    else { el.textContent = 'Expirado'; el.style.color = 'var(--error)'; }
+  }
+  updateTimer();
+</script>
+</body>
+</html>
