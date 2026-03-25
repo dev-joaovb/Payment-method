@@ -5,7 +5,7 @@ const Pendente = () => {
     <h2>
       Pagamento pendente. Estamos no aguardo da conclusão do seu pagamento!
     </h2>
-  );
+  ); 
 };
 
 export default Pendente;

@@ -9,7 +9,8 @@ const Button = () => {
       );
 
       window.location.href = data.init_point;
-    } catch (error) {
+    } catch (error) { 
+      
       console.error("Deu erro na requisição", error);
     }
   };
